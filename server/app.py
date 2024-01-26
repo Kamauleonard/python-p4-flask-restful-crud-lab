@@ -15,7 +15,7 @@ migrate = Migrate(app, db)
 db.init_app(app)
 
 api = Api(app)
-
+ 
 
 class Plants(Resource):
 
@@ -44,12 +44,41 @@ api.add_resource(Plants, '/plants')
 class PlantByID(Resource):
 
     def get(self, id):
-        plant = Plant.query.filter_by(id=id).first().to_dict()
-        return make_response(jsonify(plant), 200)
+        plant = Plant.query.filter_by(id=id).first()
+        if plant is not None:
+            return make_response(jsonify(plant.to_dict()), 200)
+        else:
+            response_data = {"error": "Plant not found"}
+            return make_response(jsonify(response_data), 404)
 
+    def patch(self, id):
+        plant = Plant.query.filter_by(id=id).first()
+
+        if plant is not None:
+            # Assuming JSON data is sent
+            data = request.json
+            for attr in data:
+                setattr(plant, attr, data[attr])
+
+            db.session.commit()
+            return make_response(jsonify(plant.to_dict()), 200)
+        else:
+            response_data = {"error": "Plant not found"}
+            return make_response(jsonify(response_data), 404)
+
+    def delete(self, id):
+        plant = Plant.query.filter_by(id=id).first()
+
+        if plant is not None:
+            db.session.delete(plant)
+            db.session.commit()
+            response_data = " "
+            return make_response(jsonify(response_data), 204)
+        else:
+            response_data = {"error": "Plant not found"}
+            return make_response(jsonify(response_data), 404)
 
 api.add_resource(PlantByID, '/plants/<int:id>')
-
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
